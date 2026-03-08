@@ -4,10 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class SbKafkaStreamsApplication {
+public class ConsumerServiceBApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(SbKafkaStreamsApplication.class, args);
+        SpringApplication.run(ConsumerServiceBApplication.class, args);
     }
 
 }
