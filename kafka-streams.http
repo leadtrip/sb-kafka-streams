@@ -1,5 +1,8 @@
 @machine-1 = server-rack-01
 @machine-2 = server-rack-02
+@cpu_usage = CPU_USAGE
+@ram_usage = RAM_USAGE
+@hdd_usage = DISK_USAGE
 
 ## Add a metric
 POST {{api_endpoint}}/api/metric/add
@@ -8,7 +11,23 @@ Content-Type: application/json
 
 {
   "machineId": "{{machine-2}}",
-  "metricType": "CPU_USAGE",
+  "metricType": "{{cpu_usage}}",
+  "value": {{$random.integer(0,100)}},
+  "timestamp": {{$timestamp}}
+}
+
+####
+
+< {%
+    request.variables.set("machine-id", ["01", "02", "03", "04", "05"])
+%}
+POST {{api_endpoint}}/api/metric/add
+Accept: application/json
+Content-Type: application/json
+
+{
+  "machineId": "server-rack-{{machine-id}}",
+  "metricType": "{{ram_usage}}",
   "value": {{$random.integer(0,100)}},
   "timestamp": {{$timestamp}}
 }
