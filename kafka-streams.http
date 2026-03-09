@@ -1,0 +1,14 @@
+@machine-1 = server-rack-01
+@machine-2 = server-rack-02
+
+## Add a metric
+POST {{api_endpoint}}/api/metric/add
+Accept: application/json
+Content-Type: application/json
+
+{
+  "machineId": "{{machine-2}}",
+  "metricType": "CPU_USAGE",
+  "value": {{$random.integer(0,100)}},
+  "timestamp": {{$timestamp}}
+}

@@ -5,11 +5,10 @@ services:
     ports:
       - "9092:9092"
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
-      interval: 10s
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/9092"]
+      interval: 5s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 10
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: 'broker,controller'
@@ -20,6 +19,8 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
       KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - kk-streams-network
 
   # UI for visualizing topics
   kafka-ui:
@@ -32,15 +33,21 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
     depends_on:
       - kafka
+    networks:
+      - kk-streams-network
 
   producer-service:
     build: ./producer-service
     container_name: producer-service
+    ports:
+      - "9330:9330"
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
       kafka:
         condition: service_healthy
+    networks:
+      - kk-streams-network
 
   consumer-service-a:
     build: ./consumer-service-a
@@ -51,6 +58,8 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+    networks:
+      - kk-streams-network
 
   consumer-service-b:
     build: ./consumer-service-b
@@ -61,3 +70,9 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+    networks:
+      - kk-streams-network
+
+networks:
+  kk-streams-network:
+    driver: bridge
