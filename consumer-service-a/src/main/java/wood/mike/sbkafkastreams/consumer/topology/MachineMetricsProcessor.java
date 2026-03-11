@@ -8,19 +8,30 @@ import org.apache.kafka.streams.kstream.*;
 import org.apache.kafka.streams.state.WindowStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.support.serializer.JacksonJsonSerde;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 import wood.mike.sbkafkastreams.common.model.MachineMetricEvent;
+import wood.mike.sbkafkastreams.common.model.MetricUpdate;
 
 import java.time.Duration;
+import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @Component
 public class MachineMetricsProcessor {
 
+    private final SimpMessagingTemplate messagingTemplate;
+
+    public MachineMetricsProcessor(SimpMessagingTemplate messagingTemplate) {
+        this.messagingTemplate = messagingTemplate;
+    }
+
     @Autowired
     public void buildPipeline(StreamsBuilder streamsBuilder) {
         var doubleSerde = Serdes.Double();
         var eventSerde = new JacksonJsonSerde<>(MachineMetricEvent.class);
+        var metricUpdateSerde = new JacksonJsonSerde<>(MetricUpdate.class);
 
         KStream<String, MachineMetricEvent> metrics = streamsBuilder.stream(
                 "raw-metrics",
@@ -40,12 +51,17 @@ public class MachineMetricsProcessor {
                                 .withValueSerde(doubleSerde)
                 )
                 .toStream()
-                .peek((windowedKey, avg) -> {
+                .mapValues((windowedKey, avg) -> {
                     String[] parts = windowedKey.key().split(":");
-                    log.info("Machine: {} | Metric: {} | Avg: {}", parts[0], parts[1], avg);
+                    return new MetricUpdate(parts[0], parts[1], avg);
+                })
+                .peek((windowedKey, mu) -> {
+                    log.info("Sending record to topic. Key: {}, Value: {}, Serde: {}",
+                            windowedKey, mu, metricUpdateSerde.getClass().getName());
                 })
                 .to("machine-metric-averages", Produced.with(
                         WindowedSerdes.timeWindowedSerdeFrom(String.class, 60000L),
-                        doubleSerde));
+                        metricUpdateSerde)
+                );
     }
 }

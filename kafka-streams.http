@@ -19,15 +19,18 @@ Content-Type: application/json
 ####
 
 < {%
-    request.variables.set("machine-id", ["01", "02", "03", "04", "05"])
+    const allMetrics = ["CPU_USAGE", "RAM_USAGE", "DISK_USAGE"];
+    const randomMetric = allMetrics[$random.integer(0,3)]
+    request.variables.set("metric", randomMetric)
+    request.variables.set("id", [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
 %}
 POST {{api_endpoint}}/api/metric/add
 Accept: application/json
 Content-Type: application/json
 
 {
-  "machineId": "server-rack-{{machine-id}}",
-  "metricType": "{{ram_usage}}",
+  "machineId": "server-rack-{{id}}{{$random.integer(1,9)}}",
+  "metricType": "{{metric}}",
   "value": {{$random.integer(0,100)}},
   "timestamp": {{$timestamp}}
 }
