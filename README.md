@@ -20,6 +20,8 @@ Does nothing at present
 Provides a visual UI which renders charts/graphs ingesting web socket records supplied by the
 consumer service
 
+![img.png](img.png)
+
 Useful URLs:
 * kafka-ui - http://localhost:9090/
 * server monitor - http://localhost:9331/live-machine-metrics
