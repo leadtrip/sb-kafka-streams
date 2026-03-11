@@ -2,50 +2,71 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Real-Time Metrics</title>
+    <title>Server Monitor</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.3.0/bundles/stomp.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+    <style>
+        .container { display: flex; flex-wrap: wrap; gap: 20px; padding: 20px; font-family: sans-serif; }
+        .card { width: 320px; border: 1px solid #ddd; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); background: #fff; }
+        .timestamp { font-size: 0.8rem; color: #888; margin-top: 10px; display: block; }
+    </style>
 </head>
 <body>
-<div style="width: 80%; margin: auto;">
-    <canvas id="metricsChart"></canvas>
-</div>
+<h2>Server Monitor</h2>
+<div id="dashboard" class="container"></div>
 
 <script>
-    // 1. Initialize Chart.js
-    const ctx = document.getElementById('metricsChart').getContext('2d');
-    const chart = new Chart(ctx, {
-        type: 'line',
-        data: { labels: [], datasets: [{ label: 'Machine Usage (%)', data: [], borderColor: '#4caf50' }] },
-        options: { responsive: true }
-    });
+    const serverCharts = {};
 
-    // 2. Configure STOMP Client
-    // Note: Point this to your Consumer App's URL/Port
-    const client = new StompJs.Client({
-        brokerURL: 'ws://localhost:9332/ws-metrics',
-        onConnect: () => {
-            console.log('Connected to WebSocket');
-            client.subscribe('/topic/averages', (message) => {
-                const data = JSON.parse(message.body);
-                updateChart(data);
+    const formatTime = () => new Date().toLocaleTimeString('en-GB');
+
+    function updateOrCreateChart(data) {
+        if (!serverCharts[data.machine]) {
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.innerHTML = `
+                <h3 style="margin-top:0">${data.machine}</h3>
+                <canvas id="chart-${data.machine}"></canvas>
+                <small class="timestamp" id="time-${data.machine}">Last updated: --:--:--</small>
+            `;
+            document.getElementById('dashboard').appendChild(div);
+
+            const ctx = document.getElementById(`chart-${data.machine}`).getContext('2d');
+            serverCharts[data.machine] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['CPU', 'RAM', 'DISK'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: ['#ff6384', '#36a2eb', '#4bc0c0'],
+                        borderRadius: 8, // <--- Rounded corners
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    scales: { x: { min: 0, max: 100 } },
+                    plugins: { legend: { display: false } }
+                }
             });
         }
-    });
 
-    // 3. Update Chart Logic
-    function updateChart(data) {
-        chart.data.labels.push(new Date().toLocaleTimeString());
-        chart.data.datasets[0].data.push(data.avg);
+        const typeMap = { 'CPU_USAGE': 0, 'RAM_USAGE': 1, 'DISK_USAGE': 2 };
+        const chart = serverCharts[data.machine];
 
-        // Keep only last 20 data points
-        if (chart.data.labels.length > 20) {
-            chart.data.labels.shift();
-            chart.data.datasets[0].data.shift();
-        }
+        chart.data.datasets[0].data[typeMap[data.type]] = data.avg;
         chart.update();
+
+        document.getElementById(`time-${data.machine}`).textContent = `Last updated: ${formatTime()}`;
     }
 
+    const client = new StompJs.Client({
+        webSocketFactory: () => new SockJS('http://localhost:9332/ws-metrics'),
+        onConnect: () => {
+            client.subscribe('/topic/averages', (m) => updateOrCreateChart(JSON.parse(m.body)));
+        }
+    });
     client.activate();
 </script>
 </body>

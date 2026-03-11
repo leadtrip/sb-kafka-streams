@@ -1,4 +1,4 @@
-package wood.mike.sbkafkastreams.controller;
+package wood.mike.sbkafkastreams.producer.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;

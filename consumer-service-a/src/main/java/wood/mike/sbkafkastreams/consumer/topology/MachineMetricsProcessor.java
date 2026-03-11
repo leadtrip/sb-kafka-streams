@@ -8,24 +8,15 @@ import org.apache.kafka.streams.kstream.*;
 import org.apache.kafka.streams.state.WindowStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.support.serializer.JacksonJsonSerde;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 import wood.mike.sbkafkastreams.common.model.MachineMetricEvent;
 import wood.mike.sbkafkastreams.common.model.MetricUpdate;
 
 import java.time.Duration;
-import java.util.Map;
-import java.util.Optional;
 
 @Slf4j
 @Component
 public class MachineMetricsProcessor {
-
-    private final SimpMessagingTemplate messagingTemplate;
-
-    public MachineMetricsProcessor(SimpMessagingTemplate messagingTemplate) {
-        this.messagingTemplate = messagingTemplate;
-    }
 
     @Autowired
     public void buildPipeline(StreamsBuilder streamsBuilder) {
@@ -42,7 +33,8 @@ public class MachineMetricsProcessor {
                 .filter((key, event) -> event.value() >= 0)
                 .groupBy((key, event) -> event.machineId() + ":" + event.metricType(),
                         Grouped.with(Serdes.String(), eventSerde))
-                .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(1)))
+                .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofSeconds(10)))
+                .emitStrategy(EmitStrategy.onWindowUpdate())
                 .aggregate(
                         () -> 0.0,
                         (key, event, aggregate) -> (aggregate + event.value()) / 2,
@@ -60,7 +52,7 @@ public class MachineMetricsProcessor {
                             windowedKey, mu, metricUpdateSerde.getClass().getName());
                 })
                 .to("machine-metric-averages", Produced.with(
-                        WindowedSerdes.timeWindowedSerdeFrom(String.class, 60000L),
+                        WindowedSerdes.timeWindowedSerdeFrom(String.class, 10000L),
                         metricUpdateSerde)
                 );
     }

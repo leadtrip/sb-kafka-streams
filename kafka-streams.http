@@ -4,7 +4,7 @@
 @ram_usage = RAM_USAGE
 @hdd_usage = DISK_USAGE
 
-## Add a metric
+## Add a single metric
 POST {{api_endpoint}}/api/metric/add
 Accept: application/json
 Content-Type: application/json
@@ -16,20 +16,24 @@ Content-Type: application/json
   "timestamp": {{$timestamp}}
 }
 
-####
+#### Add a bunch of metrics for a bunch of machines using the built in service
+@total-machines=10
+@num-iterations=50
+POST http://localhost:9330/api/generator/run?machines={{total-machines}}&iterations={{num-iterations}}
 
+#### Add a bunch of metrics, no way to wait between each request so not the best
 < {%
     const allMetrics = ["CPU_USAGE", "RAM_USAGE", "DISK_USAGE"];
     const randomMetric = allMetrics[$random.integer(0,3)]
     request.variables.set("metric", randomMetric)
-    request.variables.set("id", [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+    request.variables.set("id", Array(10).fill(0))
 %}
 POST {{api_endpoint}}/api/metric/add
 Accept: application/json
 Content-Type: application/json
 
 {
-  "machineId": "server-rack-{{id}}{{$random.integer(1,9)}}",
+  "machineId": "server-rack-{{id}}{{$random.integer(1,3)}}",
   "metricType": "{{metric}}",
   "value": {{$random.integer(0,100)}},
   "timestamp": {{$timestamp}}
