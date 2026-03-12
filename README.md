@@ -2,6 +2,9 @@ A multi module gradle, spring boot, kafka streams project.
 
 The project domain focuses on machine metrics, CPU, RAM and DISK.
 
+Bring it all up with:
+`./startup.sh`
+
 **common**\
 Contains messages shared among other modules.
 

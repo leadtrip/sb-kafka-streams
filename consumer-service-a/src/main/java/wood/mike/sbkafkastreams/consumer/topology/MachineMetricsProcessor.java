@@ -20,7 +20,7 @@ public class MachineMetricsProcessor {
 
     @Autowired
     public void buildPipeline(StreamsBuilder streamsBuilder) {
-        var doubleSerde = Serdes.Double();
+        var accSerde = new JacksonJsonSerde<>(MetricAccumulator.class);
         var eventSerde = new JacksonJsonSerde<>(MachineMetricEvent.class);
         var metricUpdateSerde = new JacksonJsonSerde<>(MetricUpdate.class);
 
@@ -36,12 +36,11 @@ public class MachineMetricsProcessor {
                 .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofSeconds(10)))
                 .emitStrategy(EmitStrategy.onWindowUpdate())
                 .aggregate(
-                        () -> 0.0,
-                        (key, event, aggregate) -> (aggregate + event.value()) / 2,
-                        Materialized.<String, Double, WindowStore<Bytes, byte[]>>as("metrics-avg-store")
-                                .withKeySerde(Serdes.String())
-                                .withValueSerde(doubleSerde)
+                        () -> new MetricAccumulator(0.0, 0),
+                        (key, event, acc) -> new MetricAccumulator(acc.sum() + event.value(), acc.count() + 1),
+                        Materialized.with(Serdes.String(), accSerde)
                 )
+                .mapValues(acc -> acc.sum() / acc.count())
                 .toStream()
                 .mapValues((windowedKey, avg) -> {
                     String[] parts = windowedKey.key().split(":");

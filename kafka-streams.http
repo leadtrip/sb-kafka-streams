@@ -18,7 +18,7 @@ Content-Type: application/json
 
 #### Add a bunch of metrics for a bunch of machines using the built in service
 @total-machines=10
-@num-iterations=50
+@num-iterations=100
 POST http://localhost:9330/api/generator/run?machines={{total-machines}}&iterations={{num-iterations}}
 
 #### Add a bunch of metrics, no way to wait between each request so not the best
