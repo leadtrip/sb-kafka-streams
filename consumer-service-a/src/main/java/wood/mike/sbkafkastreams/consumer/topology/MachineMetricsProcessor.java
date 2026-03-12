@@ -47,8 +47,7 @@ public class MachineMetricsProcessor {
                     return new MetricUpdate(parts[0], parts[1], avg);
                 })
                 .peek((windowedKey, mu) -> {
-                    log.info("Sending record to topic. Key: {}, Value: {}, Serde: {}",
-                            windowedKey, mu, metricUpdateSerde.getClass().getName());
+                    log.info("Sending record to topic. Key: {}, Value: {}", windowedKey, mu);
                 })
                 .to("machine-metric-averages", Produced.with(
                         WindowedSerdes.timeWindowedSerdeFrom(String.class, 10000L),

@@ -5,6 +5,6 @@ import java.time.Instant;
 public record MachineMetricEvent(
         String machineId,
         String metricType,
-        double value,
+        Double value,
         Instant timestamp
 ) {}
